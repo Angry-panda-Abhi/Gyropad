@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gyropad Pro - Sim Companion & 3D Telemetry</title>
+  <link rel="icon" href="/assets/logo.svg">
+  <link rel="stylesheet" href="/css/pc.css">
+</head>
+<body>
+
+  <!-- Starlight Headliner Background -->
+  <canvas id="sky"></canvas>
+
+  <div class="wrap">
+    <!-- Top Telemetry Header -->
+    <header class="top-nav">
+      <a href="/" class="brand-badge">
+        <img src="/assets/logo.svg" alt="Gyropad Logo">
+        <span class="brand-name">GYROPAD PRO</span>
+        <span class="brand-tag">SIM COMPANION</span>
+      </a>
+
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-target="tab-controller">
+          PC CONTROLLER
+        </button>
+        <button class="tab-btn" data-target="tab-game">
+          SIMULATOR
+        </button>
+        <button class="tab-btn" data-target="tab-telemetry">
+          TELEMETRY
+        </button>
+        <button class="tab-btn" data-target="tab-setup">
+          SYSTEM &amp; SETUP
+        </button>
+      </nav>
+
+      <div class="nav-status">
+        <div class="conn-pill">
+          <span class="conn-dot" id="pc-conn-dot"></span>
+          <span id="pc-conn-text">LINK PENDING</span>
+          <span class="latency-badge" id="pc-latency">-- ms</span>
+        </div>
+        <span id="phone-connected-indicator" style="color: var(--text-secondary); font-weight: 700;">
+          PHONE: STANDBY
+        </span>
+      </div>
+    </header>
+
+    <!-- TAB 0: PC GAME CONTROLLER & SETUP (PLAY ANY PC GAME) -->
+    <main id="tab-controller" class="tab-content active">
+      <!-- Companion Header & Status -->
+      <div class="companion-hero">
+        <div class="companion-hero-left">
+          <h2>GYROPAD PC GAME CONTROLLER BRIDGE</h2>
+          <p>Control any PC game using your smartphone as a hardware Xbox 360 controller or virtual keyboard.</p>
+        </div>
+        <div class="driver-pill" id="driver-status-pill">
+          <span class="driver-dot"></span>
+          <span id="driver-status-text">INITIALIZING DRIVER...</span>
+        </div>
+      </div>
+
+      <!-- Control Mode Selector Grid -->
+      <div class="mode-grid">
+        <div class="mode-card selected" id="card-mode-gamepad" data-mode="gamepad">
+          <div class="mode-header">
+            <span class="mode-title">🏎️ XBOX 360 WHEEL &amp; PAD</span>
+            <span class="mode-badge">XINPUT / DIRECTINPUT</span>
+          </div>
+          <div class="mode-desc">
+            900° analog steering wheel axis, analog gas &amp; brake triggers, tactile paddle shifters, and full buttons.
+          </div>
+          <div class="mode-targets">
+            Steam · Assetto Corsa · BeamNG · ETS2 · Forza · RPCS3
+          </div>
+        </div>
+
+        <div class="mode-card" id="card-mode-keyboard-wasd" data-mode="keyboard_wasd">
+          <div class="mode-header">
+            <span class="mode-title">⌨️ KEYBOARD WASD MODE</span>
+            <span class="mode-badge">VIRTUAL KEYBOARD</span>
+          </div>
+          <div class="mode-desc">
+            W = Gas, S = Brake/Reverse, A/D = Steer, Space = Handbrake, Shift = Shift Up / Nitro, Ctrl = Shift Down.
+          </div>
+          <div class="mode-targets">
+            TrackMania · GTA V · Need for Speed · Web Racers
+          </div>
+        </div>
+
+        <div class="mode-card" id="card-mode-keyboard-arrows" data-mode="keyboard_arrows">
+          <div class="mode-header">
+            <span class="mode-title">🕹️ KEYBOARD ARROWS</span>
+            <span class="mode-badge">ARCADE RETRO</span>
+          </div>
+          <div class="mode-desc">
+            Up = Gas, Down = Brake, Left/Right = Steer, Space = Handbrake, Enter = Pause/Menu.
+          </div>
+          <div class="mode-targets">
+            OutRun · Retro Racers · Flash Games · Emulators
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <!-- Live Hardware Controller Visualizer -->
+        <div class="card col-7">
+          <h3>
+            <span>LIVE HARDWARE CONTROLLER VISUALIZER</span>
+            <span style="font-size: 10px; color: var(--accent-cyan);" id="live-driver-mode-tag">MODE: XBOX 360</span>
+          </h3>
+
+          <div class="controller-vis-wrap">
+            <!-- Visual Gamepad Graphic -->
+            <div class="vis-diagram">
+              <div class="vis-bumpers">
+                <div class="vis-bumper" id="vis-lb">LB / DOWN</div>
+                <div class="vis-bumper" id="vis-rb">RB / UP</div>
+              </div>
+
+              <div class="vis-gamepad-body">
+                <!-- Left Stick / Steering Wheel Axis -->
+                <div class="vis-stick-left">
+                  <div class="vis-stick-thumb" id="vis-thumb-left"></div>
+                </div>
+
+                <!-- Center Status -->
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;">
+                  <span style="font-family:var(--mono-stack); font-size:9px; color:var(--text-secondary); letter-spacing:0.1em;">GYROPAD</span>
+                  <div style="width:12px; height:12px; border-radius:50%; background:#2A2536; border:1px solid var(--accent-purple);" id="vis-guide-btn"></div>
+                </div>
+
+                <!-- Face Buttons (A, B, X, Y) -->
+                <div class="vis-buttons-group">
+                  <div></div>
+                  <div class="vis-btn" id="vis-btn-y">Y</div>
+                  <div></div>
+                  <div class="vis-btn" id="vis-btn-x">X</div>
+                  <div></div>
+                  <div class="vis-btn" id="vis-btn-b">B</div>
+                  <div></div>
+                  <div class="vis-btn" id="vis-btn-a">A</div>
+                  <div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Axis Deflection Bars -->
+            <div class="vis-meters">
+              <div class="meter-row">
+                <div class="meter-labels">
+                  <span>STEERING (ABS_X)</span>
+                  <span id="vis-steer-val">0.0° (0)</span>
+                </div>
+                <div class="meter-track">
+                  <div class="meter-fill steer" id="vis-steer-fill"></div>
+                </div>
+              </div>
+
+              <div class="meter-row">
+                <div class="meter-labels">
+                  <span>THROTTLE (RT / ABS_RZ)</span>
+                  <span id="vis-gas-val">0% (0)</span>
+                </div>
+                <div class="meter-track">
+                  <div class="meter-fill gas" id="vis-gas-fill"></div>
+                </div>
+              </div>
+
+              <div class="meter-row">
+                <div class="meter-labels">
+                  <span>BRAKE (LT / ABS_Z)</span>
+                  <span id="vis-brake-val">0% (0)</span>
+                </div>
+                <div class="meter-track">
+                  <div class="meter-fill brake" id="vis-brake-fill"></div>
+                </div>
+              </div>
+
+              <div class="meter-row">
+                <div class="meter-labels">
+                  <span>HANDBRAKE (BTN_A)</span>
+                  <span id="vis-handbrake-val">RELEASED</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1-Click Setup & Download Box -->
+        <div class="card col-5">
+          <h3>
+            <span>PC COMPANION SETUP &amp; DOWNLOAD</span>
+            <span style="font-size: 10px; color: var(--accent-green);">1-STEP RUN</span>
+          </h3>
+
+          <div style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 8px;">
+            To enable the Linux virtual controller driver without root/sudo prompts:
+          </div>
+
+          <div class="code-snippet-row">
+            <code id="setup-command-text">bash setup_pc.sh</code>
+            <button class="btn-copy" id="btn-copy-setup">COPY</button>
+          </div>
+
+          <div style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 14px;">
+            Configures kernel <code>/dev/uinput</code> permissions, adds your user to the <code>uinput</code> group, and installs the desktop launcher icon.
+          </div>
+
+          <div class="dl-buttons-row">
+            <a href="/downloads/gyropad-pc-companion.zip" class="btn-download-action primary" download>
+              <span>📦 DOWNLOAD COMPANION (.ZIP)</span>
+            </a>
+            <a href="/downloads/setup_pc.sh" class="btn-download-action" download>
+              <span>🐧 LINUX SETUP_PC.SH</span>
+            </a>
+            <a href="/downloads/run_windows.bat" class="btn-download-action" download>
+              <span>🪟 WINDOWS RUN.BAT</span>
+            </a>
+          </div>
+
+          <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--stroke-dim); font-size: 11px; color: var(--text-secondary); font-family: var(--mono-stack);">
+            <span>DEVICE: </span><span style="color:var(--accent-cyan);" id="status-device-node">/dev/input/js0 (Xbox 360)</span>
+          </div>
+        </div>
+
+        <!-- Step-by-Step Game Compatibility Guides -->
+        <div class="card col-12">
+          <h3><span>GAME COMPATIBILITY &amp; QUICK START GUIDES</span></h3>
+          <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 8px;">
+            <div style="background:#09080C; padding:14px; border:1px solid var(--stroke-dim); border-radius:6px;">
+              <h4 style="font-family:var(--mono-stack); font-size:12px; color:#fff; margin-bottom:6px;">
+                1. STEAM &amp; RACING SIMS
+              </h4>
+              <p style="font-size:11.5px; color:var(--text-secondary); line-height:1.5;">
+                Works natively with <strong>Assetto Corsa, BeamNG.drive, Euro Truck Simulator 2, Forza Horizon</strong>.
+                Steam detects "Xbox 360 Controller" out of the box. Simply bind steering to Left Stick X and pedals to RT/LT.
+              </p>
+            </div>
+
+            <div style="background:#09080C; padding:14px; border:1px solid var(--stroke-dim); border-radius:6px;">
+              <h4 style="font-family:var(--mono-stack); font-size:12px; color:#fff; margin-bottom:6px;">
+                2. EMULATORS (PS2 / PS3 / RETRO)
+              </h4>
+              <p style="font-size:11.5px; color:var(--text-secondary); line-height:1.5;">
+                In <strong>RPCS3, PCSX2, Dolphin, DuckStation, or RetroArch</strong>: go to Controllers &rarr; Input Device &rarr; Select "Microsoft X-Box 360 pad". Full dual-stick and trigger analog support.
+              </p>
+            </div>
+
+            <div style="background:#09080C; padding:14px; border:1px solid var(--stroke-dim); border-radius:6px;">
+              <h4 style="font-family:var(--mono-stack); font-size:12px; color:#fff; margin-bottom:6px;">
+                3. KEYBOARD-ONLY GAMES
+              </h4>
+              <p style="font-size:11.5px; color:var(--text-secondary); line-height:1.5;">
+                For <strong>TrackMania, GTA V, Flash racers</strong>: click "Keyboard WASD Mode" above. Your phone tilt and pedal touches automatically press W, A, S, D, and Space at the OS kernel level!
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 1: 3D RACING SIMULATOR -->
+    <section id="tab-game" class="tab-content">
+      <div class="game-container">
+        <canvas id="game-canvas"></canvas>
+
+        <!-- In-Game HUD -->
+        <div class="game-overlay">
+          <!-- Top Bar -->
+          <div class="game-top-bar">
+            <div class="lap-timer-card">
+              <div class="lap-title">LAP TIMER</div>
+              <div class="lap-current" id="hud-lap-time">00:00.00</div>
+              <div class="lap-best" id="hud-best-time">BEST: --:--.--</div>
+            </div>
+
+            <div class="game-controls-hint">
+              <span>STEER: <kbd>PHONE TILT</kbd> / <kbd>A</kbd><kbd>D</kbd></span>
+              <span>THROTTLE: <kbd>GAS</kbd> / <kbd>W</kbd></span>
+              <span>BRAKE: <kbd>BRK</kbd> / <kbd>S</kbd></span>
+              <span>PADDLES: <kbd>Q</kbd><kbd>E</kbd></span>
+              <span>VIEW: <kbd>C</kbd></span>
+              <span>RESET: <kbd>R</kbd></span>
+            </div>
+          </div>
+
+          <!-- Bottom Bar: Cockpit Instrument Cluster -->
+          <div class="game-bottom-bar">
+            <!-- Mini Steering Wheel Angle Dial -->
+            <div class="steering-preview-hud">
+              <svg class="mini-wheel-dial" id="mini-wheel" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#221F2C" stroke-width="8"/>
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#8B5CF6" stroke-width="3" stroke-dasharray="180 300"/>
+                <line x1="50" y1="8" x2="50" y2="22" stroke="#EDEDF0" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="50" cy="50" r="14" fill="#110F16" stroke="#353142" stroke-width="2"/>
+                <path d="M22 50 L38 50 M62 50 L78 50" stroke="#8E8A9C" stroke-width="3" stroke-linecap="round"/>
+              </svg>
+              <span style="font-size: 10px; font-family: var(--mono-stack); color: var(--text-secondary); letter-spacing: 0.1em;">STEERING</span>
+            </div>
+
+            <!-- Primary Speed & Rev Cluster -->
+            <div class="hud-cluster">
+              <!-- Mini Pedals -->
+              <div class="pedals-mini-gauges">
+                <div class="pedal-col">
+                  <div class="pedal-bar-track">
+                    <div class="pedal-bar-fill clutch" id="hud-clutch-fill"></div>
+                  </div>
+                  <span>CLU</span>
+                </div>
+                <div class="pedal-col">
+                  <div class="pedal-bar-track">
+                    <div class="pedal-bar-fill brake" id="hud-brake-fill"></div>
+                  </div>
+                  <span>BRK</span>
+                </div>
+                <div class="pedal-col">
+                  <div class="pedal-bar-track">
+                    <div class="pedal-bar-fill gas" id="hud-gas-fill"></div>
+                  </div>
+                  <span>GAS</span>
+                </div>
+              </div>
+
+              <!-- Speedometer -->
+              <div class="speedometer-box">
+                <div class="speed-number" id="hud-speed">0</div>
+                <div class="speed-unit">KM / H</div>
+              </div>
+
+              <!-- Gearbox Box -->
+              <div class="gear-box" id="hud-gear">1</div>
+
+              <!-- Tachometer LEDs -->
+              <div class="tachometer-box">
+                <span style="font-size: 9px; font-family: var(--mono-stack); font-weight: 800; color: var(--text-secondary); letter-spacing: 0.12em;">ENGINE RPM</span>
+                <div class="rpm-bar-container">
+                  <div class="rpm-led green"></div>
+                  <div class="rpm-led green"></div>
+                  <div class="rpm-led green"></div>
+                  <div class="rpm-led green"></div>
+                  <div class="rpm-led yellow"></div>
+                  <div class="rpm-led yellow"></div>
+                  <div class="rpm-led yellow"></div>
+                  <div class="rpm-led red"></div>
+                  <div class="rpm-led red"></div>
+                  <div class="rpm-led blue"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Initial Start Modal -->
+        <div class="game-start-modal" id="game-start-modal">
+          <div class="start-card">
+            <h2>GYROPAD SIMULATOR READY</h2>
+            <p>Connect your smartphone as a motion-controlled steering wheel over local Wi-Fi or USB tethering.</p>
+            
+            <div class="qr-box-inner" id="start-qr"></div>
+            
+            <div style="margin-bottom: 20px;">
+              <p style="font-family: var(--mono-stack); font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;" id="modal-phone-hint">
+                SCAN QR WITH PHONE OR VISIT:
+              </p>
+              <div style="margin-bottom: 6px;">
+                <a class="display-phone-url" href="/phone" target="_blank" style="font-family: var(--mono-stack); color: var(--accent-cyan); font-size: 13px; text-decoration: none; border-bottom: 1px dotted var(--accent-cyan);">
+                  http://localhost:8080/phone
+                </a>
+              </div>
+              <div style="font-size: 11px; color: var(--text-secondary); font-family: var(--mono-stack);">
+                <span>For Chrome Gyroscope access, use HTTPS: </span>
+                <a class="display-phone-https-url" href="https://localhost:8443/phone" target="_blank" style="color: var(--accent-purple); text-decoration: underline;">
+                  https://...:8443/phone
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <button class="start-action-btn" id="btn-start-driving">
+                INITIALIZE ENGINE &amp; DRIVE
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 2: TELEMETRY & GAUGES -->
+    <section id="tab-telemetry" class="tab-content">
+      <div class="dash-grid">
+        <!-- Wheel Telemetry Card -->
+        <div class="card col-4">
+          <h3>
+            <span>STEERING TELEMETRY</span>
+            <span style="font-size: 10px; color: var(--accent-cyan);">1:1 DYNAMIC</span>
+          </h3>
+          <div class="wheel-display-wrap">
+            <svg class="big-wheel-svg" id="telemetry-wheel-svg" viewBox="0 0 200 200">
+              <circle cx="100" cy="100" r="86" fill="none" stroke="#1C1A24" stroke-width="16"/>
+              <circle cx="100" cy="100" r="86" fill="none" stroke="#353142" stroke-width="4" stroke-dasharray="240 400"/>
+              <rect x="97" y="6" width="6" height="16" rx="2" fill="#8B5CF6"/>
+              <circle cx="100" cy="100" r="32" fill="#110F16" stroke="#2B2836" stroke-width="2"/>
+              <path d="M42 100 L70 100 M130 100 L158 100 M100 132 L100 160" stroke="#353142" stroke-width="6" stroke-linecap="round"/>
+              <circle cx="100" cy="100" r="12" fill="#8B5CF6"/>
+            </svg>
+            <div class="wheel-angle-readout" id="telemetry-angle-val">0.0°</div>
+          </div>
+        </div>
+
+        <!-- G-Force Friction Ellipse Card -->
+        <div class="card col-4">
+          <h3>
+            <span>G-FORCE VECTOR</span>
+            <span style="font-size: 10px; color: var(--accent-cyan);">ACCEL &amp; CORNERING</span>
+          </h3>
+          <div class="g-meter-wrap">
+            <div class="g-circle">
+              <div class="g-cross-h"></div>
+              <div class="g-cross-v"></div>
+              <div class="g-dot" id="g-force-dot"></div>
+            </div>
+            <div class="g-readout-text" id="g-force-readout">LAT: 0.00 G | LONG: 0.00 G</div>
+          </div>
+        </div>
+
+        <!-- Pedals Telemetry Card -->
+        <div class="card col-4">
+          <h3>
+            <span>PEDAL PRESSURE</span>
+            <span style="font-size: 10px; color: var(--accent-green);">ANALOG RAW</span>
+          </h3>
+          <div class="pedal-sliders">
+            <div>
+              <div class="pedal-large-track">
+                <div class="pedal-large-fill clutch" id="telemetry-clutch-fill"></div>
+              </div>
+              <div class="pedal-label">CLUTCH</div>
+              <div class="pedal-val" id="telemetry-clutch-val">0%</div>
+            </div>
+            <div>
+              <div class="pedal-large-track">
+                <div class="pedal-large-fill brake" id="telemetry-brake-fill"></div>
+              </div>
+              <div class="pedal-label">BRAKE</div>
+              <div class="pedal-val" id="telemetry-brake-val">0%</div>
+            </div>
+            <div>
+              <div class="pedal-large-track">
+                <div class="pedal-large-fill gas" id="telemetry-gas-fill"></div>
+              </div>
+              <div class="pedal-label">THROTTLE</div>
+              <div class="pedal-val" id="telemetry-gas-val">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shifter & Gearbox Card -->
+        <div class="card col-6">
+          <h3>
+            <span>TRANSMISSION MONITOR</span>
+            <span style="font-size: 10px; color: var(--text-secondary);">6-SPEED MANUAL/AUTO</span>
+          </h3>
+          <div class="shifter-monitor">
+            <div class="paddle-ind" id="dash-paddle-down">◀ DOWNSHIFT</div>
+            <div class="gear-display-large" id="dash-gear-display">1</div>
+            <div class="paddle-ind" id="dash-paddle-up">UPSHIFT ▶</div>
+          </div>
+        </div>
+
+        <!-- Configuration Settings Card -->
+        <div class="card col-6">
+          <h3><span>CALIBRATION PROFILE</span></h3>
+          <div class="settings-row">
+            <div>
+              <div class="settings-label">Steering Lock Range</div>
+              <div class="settings-desc">Lock-to-lock physical wheel travel</div>
+            </div>
+            <select id="setting-steer-range">
+              <option value="180">180° (Arcade Formula)</option>
+              <option value="270">270° (Kart / Rally)</option>
+              <option value="360">360° (GT3 Sim)</option>
+              <option value="540">540° (Rally / Touring)</option>
+              <option value="900" selected>900° (Full Pro Racing Wheel)</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-label">Transmission Mode</div>
+              <div class="settings-desc">Automatic sequential vs paddle shifter manual</div>
+            </div>
+            <select id="setting-transmission">
+              <option value="auto" selected>Automatic Sequential</option>
+              <option value="manual">Manual Paddle Shifters</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-label">Acoustic Engine Synthesizer</div>
+              <div class="settings-desc">Dual-harmonic RPM pitch and tire slip audio</div>
+            </div>
+            <input type="checkbox" id="setting-sound-toggle" checked style="width: 18px; height: 18px; accent-color: var(--accent-purple);">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: SYSTEM & SETUP -->
+    <section id="tab-setup" class="tab-content">
+      <div class="dash-grid">
+        <div class="card col-6">
+          <h3><span>NETWORK PAIRING</span></h3>
+          <div class="qr-connect-box">
+            <div class="qr-code-holder" id="dash-qr-holder"></div>
+            <div class="qr-url-text display-phone-url">http://localhost:8080/phone</div>
+            <p style="font-size: 13px; color: var(--text-secondary); max-width: 400px; line-height: 1.5;">
+              Ensure both devices are on the same Wi-Fi. If your network router enforces AP client isolation, plug your phone into your PC with a USB cable and enable <strong>USB Tethering</strong> in your phone settings.
+            </p>
+          </div>
+        </div>
+
+        <div class="card col-6">
+          <h3><span>NATIVE PC GAMES INTEGRATION</span></h3>
+          <div style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.7;">
+            <p style="margin-bottom: 12px;">
+              Gyropad includes a kernel-level Linux virtual gamepad driver via <code>/dev/uinput</code>.
+            </p>
+            <p style="margin-bottom: 12px;">
+              To pipe your phone gyroscope directly into Steam games (Assetto Corsa, Euro Truck Simulator 2, BeamNG.drive, Dirt Rally):
+            </p>
+            <pre style="background: #0A090D; padding: 12px; border: 1px solid var(--stroke-highlight); border-radius: 4px; font-family: var(--mono-stack); color: var(--accent-cyan); margin-bottom: 14px;">sudo python3 virtual_gamepad.py</pre>
+            <p>
+              Your system will immediately register a native Xbox 360 controller device with zero configuration required.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="/js/three.min.js"></script>
+  <script src="/js/qrcode.min.js"></script>
+  <script src="/js/sound.js"></script>
+  <script src="/js/track.js"></script>
+  <script src="/js/car.js"></script>
+  <script src="/js/game.js"></script>
+  <script src="/js/pc.js"></script>
+</body>
+</html>

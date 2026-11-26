@@ -1,0 +1,18 @@
+{
+  "name": "Gyropad Pro Controller",
+  "short_name": "Gyropad",
+  "description": "Precision Motion Steering Wheel and Gamepad for PC Games",
+  "start_url": "/phone",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#08070B",
+  "theme_color": "#110F15",
+  "icons": [
+    {
+      "src": "/assets/logo.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

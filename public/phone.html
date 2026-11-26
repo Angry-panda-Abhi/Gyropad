@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Gyropad</title>
+  <link rel="icon" href="/assets/logo.svg">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#000000">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="/css/phone.css">
+</head>
+<body class="gyropad-body">
+
+  <!-- Portrait Orientation Warning -->
+  <div id="portrait-warning">
+    <svg class="warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="4" y="2" width="16" height="20" rx="3"/>
+      <path d="M12 18h.01"/>
+      <path d="M19 12a7 7 0 0 1-7 7M5 12a7 7 0 0 1 7-7"/>
+    </svg>
+    <div class="warning-title">ROTATE DEVICE TO LANDSCAPE</div>
+    <div class="warning-desc">Gyropad is designed for two-handed horizontal grip</div>
+  </div>
+
+  <!-- Insecure HTTP Sensor Notice (Chrome Android requires HTTPS or PWA for motion sensors) -->
+  <div id="insecure-http-notice" style="display: none;">
+    <div class="notice-inner">
+      <span>🔒 For motion steering on mobile, open HTTPS or Install App:</span>
+      <a id="link-switch-https" href="#" class="btn-https-switch">SWITCH TO HTTPS</a>
+      <button id="btn-dismiss-http-notice" class="btn-close-notice">✕</button>
+    </div>
+  </div>
+
+  <!-- iOS / Safari Motion Permission Modal -->
+  <div class="sensor-permission-overlay" id="sensor-permission-modal" style="display: none;">
+    <div class="sensor-box-inner">
+      <h3>ENABLE MOTION SENSORS</h3>
+      <p>Gyropad requires access to your device motion sensors for steering.</p>
+      <button class="sensor-btn-confirm" id="btn-grant-sensors">ALLOW SENSORS</button>
+    </div>
+  </div>
+
+  <!-- Main Controller Viewport -->
+  <div id="controller-root">
+
+    <!-- TOP BAR -->
+    <header class="top-bar">
+      <!-- Left Controls: Power & Center Calibrate -->
+      <div class="top-group left">
+        <button class="top-btn btn-square" id="btn-power" title="Disconnect / Power">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+            <line x1="12" y1="2" x2="12" y2="12"/>
+          </svg>
+        </button>
+        <button class="top-btn btn-square" id="btn-calibrate" title="Calibrate Center Angle">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/>
+            <circle cx="12" cy="9" r="2.5"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Center: Purple CONNECT Pill -->
+      <div class="top-group center">
+        <button class="btn-pill-connect" id="btn-connect">
+          <span class="connect-dot" id="connect-dot"></span>
+          <span id="connect-label">CONNECT</span>
+        </button>
+      </div>
+
+      <!-- Right Controls: GEAR DOWN & GEAR UP -->
+      <div class="top-group right">
+        <button class="top-btn btn-rect" id="btn-gear-down">
+          <span>GEAR</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </button>
+        <button class="top-btn btn-rect" id="btn-gear-up">
+          <span>GEAR</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M18 15l-6-6-6 6"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- RACEPAD MAIN VIEW -->
+    <div id="racepad-view" class="active-view">
+
+      <!-- LEFT SIDE: H-BRAKE & CLUTCH PEDAL SLIDERS -->
+      <div class="pedals-wing left-pedals">
+        <!-- H-BRAKE SLIDER -->
+        <div class="pedal-slider" id="slider-hbrake">
+          <div class="pedal-fill" id="fill-hbrake"></div>
+          <div class="pedal-header">
+            <span class="pedal-label">H-BRAKE</span>
+            <span class="pedal-val" id="val-hbrake">0</span>
+          </div>
+        </div>
+
+        <!-- CLUTCH SLIDER -->
+        <div class="pedal-slider" id="slider-clutch">
+          <div class="pedal-fill" id="fill-clutch"></div>
+          <div class="pedal-header">
+            <span class="pedal-label">CLUTCH</span>
+            <span class="pedal-val" id="val-clutch">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER COCKPIT: STEERING ARC & READOUT -->
+      <div class="cockpit-center">
+        <!-- Semi-circular Steering Arc Gauge -->
+        <div class="steering-arc-container" id="steering-touch-area">
+          <svg class="steering-arc-svg" viewBox="0 0 220 130">
+            <!-- Background Arc Track -->
+            <path class="arc-track" d="M 25 115 A 85 85 0 0 1 195 115" fill="none" stroke="#262626" stroke-width="16" stroke-linecap="round"/>
+            <!-- Active Steering Indicator Marker -->
+            <circle class="arc-indicator-dot" id="arc-dot" cx="110" cy="30" r="7" fill="#FFFFFF"/>
+          </svg>
+
+          <!-- Degree and Direction Display -->
+          <div class="degree-display-wrap">
+            <span class="degree-number" id="degree-number">0°</span>
+            <span class="degree-side" id="degree-side"></span>
+          </div>
+        </div>
+
+        <!-- Mode Toggle Pill -->
+        <button class="btn-mode-pill" id="btn-mode-pill">
+          • RACEPAD •
+        </button>
+
+        <!-- Cockpit Meta Row: Lock & Live Gyro Status -->
+        <div class="cockpit-meta-row">
+          <button class="btn-lock-icon" id="btn-steering-lock" title="Lock / Unlock Steering">
+            <svg id="lock-icon-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round">
+              <rect x="5" y="11" width="14" height="10" rx="2"/>
+              <path id="lock-shackle" d="M8 11V7a4 4 0 0 1 8 0v4"/>
+            </svg>
+          </button>
+
+          <button class="sensor-indicator" id="sensor-indicator" title="Sensor Status - Tap to calibrate or switch to HTTPS">
+            <span class="sensor-indicator-dot" id="sensor-indicator-dot"></span>
+            <span id="sensor-indicator-text">GYRO READY</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDE: BRAKE & SPEED (THROTTLE) PEDAL SLIDERS -->
+      <div class="pedals-wing right-pedals">
+        <!-- BRAKE SLIDER -->
+        <div class="pedal-slider" id="slider-brake">
+          <div class="pedal-fill brake-fill" id="fill-brake"></div>
+          <div class="pedal-header">
+            <span class="pedal-label">BRAKE</span>
+            <span class="pedal-val" id="val-brake">0</span>
+          </div>
+        </div>
+
+        <!-- SPEED SLIDER -->
+        <div class="pedal-slider" id="slider-speed">
+          <div class="pedal-fill speed-fill" id="fill-speed"></div>
+          <div class="pedal-header">
+            <span class="pedal-label">SPEED</span>
+            <span class="pedal-val" id="val-speed">0</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- GAMEPAD ALTERNATIVE VIEW -->
+    <div id="gamepad-view" class="hidden-view">
+      <!-- Left Stick Quadrant -->
+      <div class="pad-quadrant left">
+        <div class="stick-outer" id="stick-left-outer">
+          <div class="stick-thumb" id="stick-left-thumb"></div>
+        </div>
+        <div class="trigger-row">
+          <button class="btn-trigger" id="btn-lt">LT</button>
+          <button class="btn-trigger" id="btn-lb">LB</button>
+        </div>
+      </div>
+
+      <!-- Center Gamepad Controls -->
+      <div class="pad-center">
+        <button class="btn-ctrl-pad" id="btn-pad-back">BACK</button>
+        <button class="btn-mode-pill" id="btn-mode-pill-pad">• GAMEPAD •</button>
+        <button class="btn-ctrl-pad" id="btn-pad-start">START</button>
+      </div>
+
+      <!-- Right Stick & Action Buttons -->
+      <div class="pad-quadrant right">
+        <div class="trigger-row">
+          <button class="btn-trigger" id="btn-rb">RB</button>
+          <button class="btn-trigger" id="btn-rt">RT</button>
+        </div>
+        <div class="stick-outer" id="stick-right-outer">
+          <div class="stick-thumb" id="stick-right-thumb"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM ROW: AUX CONTROLS, D-PAD, ARRANGE, ABXY CLUSTER, CAM, SETUP -->
+    <footer class="bottom-bar">
+
+      <!-- Left Group: LIGHTS & HORN -->
+      <div class="bottom-group aux-left">
+        <div class="labeled-btn-wrap">
+          <button class="circle-btn" id="btn-lights">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M12 5v14M12 5a7 7 0 0 0 0 14"/>
+              <path d="M6 7l-3-1M6 12H2M6 17l-3 1"/>
+            </svg>
+          </button>
+          <span class="btn-caption">LIGHTS</span>
+        </div>
+
+        <div class="labeled-btn-wrap">
+          <button class="circle-btn" id="btn-horn">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            </svg>
+          </button>
+          <span class="btn-caption">HORN</span>
+        </div>
+      </div>
+
+      <!-- D-PAD CLUSTER -->
+      <div class="dpad-cluster">
+        <button class="dpad-btn dpad-up" id="btn-dpad-up">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3">
+            <path d="M18 15l-6-6-6 6"/>
+          </svg>
+        </button>
+        <div class="dpad-mid-row">
+          <button class="dpad-btn dpad-left" id="btn-dpad-left">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+          </button>
+          <button class="dpad-btn dpad-down" id="btn-dpad-down">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </button>
+          <button class="dpad-btn dpad-right" id="btn-dpad-right">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- CENTER: ARRANGE BUTTON -->
+      <div class="bottom-group center-arrange">
+        <div class="labeled-btn-wrap">
+          <button class="circle-btn" id="btn-arrange">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <line x1="12" y1="2" x2="12" y2="22"/>
+            </svg>
+          </button>
+          <span class="btn-caption">ARRANGE</span>
+        </div>
+      </div>
+
+      <!-- ACTION BUTTONS CLUSTER (Y, X, A, B) -->
+      <div class="action-cluster">
+        <button class="action-btn act-y" id="btn-act-y">Y</button>
+        <div class="action-bottom-row">
+          <button class="action-btn act-x" id="btn-act-x">X</button>
+          <button class="action-btn act-a" id="btn-act-a">A</button>
+          <button class="action-btn act-b" id="btn-act-b">B</button>
+        </div>
+      </div>
+
+      <!-- Right Group: CAM & SETUP -->
+      <div class="bottom-group aux-right">
+        <div class="labeled-btn-wrap">
+          <button class="circle-btn" id="btn-cam">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9"/>
+              <circle cx="12" cy="12" r="4"/>
+              <circle cx="12" cy="12" r="1" fill="currentColor"/>
+            </svg>
+          </button>
+          <span class="btn-caption">CAM</span>
+        </div>
+
+        <div class="labeled-btn-wrap">
+          <button class="circle-btn" id="btn-setup">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+          <span class="btn-caption">SETUP</span>
+        </div>
+      </div>
+
+    </footer>
+
+  </div>
+
+  <!-- CONNECTION MODAL -->
+  <div class="modal-overlay" id="modal-connect" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>CONNECT TO PC</h3>
+        <button class="modal-close" id="btn-close-connect-modal">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="status-badge" id="modal-status-badge">
+          <span class="badge-dot" id="badge-dot"></span>
+          <span id="badge-text">CHECKING CONNECTION...</span>
+        </div>
+
+        <div class="form-group">
+          <label>PC Host IP Address</label>
+          <input type="text" id="input-pc-ip" placeholder="e.g. 172.20.110.143 or 192.168.1.5">
+          <div id="quick-ip-container" style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;"></div>
+        </div>
+
+        <div class="form-group">
+          <label>HTTP / WebSocket Port</label>
+          <input type="number" id="input-pc-port" value="8080">
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-action-primary" id="btn-action-connect">CONNECT</button>
+          <button class="btn-action-secondary" id="btn-action-test-ping">TEST PING</button>
+        </div>
+
+        <!-- Connection Tips -->
+        <div class="troubleshoot-box">
+          <div class="troubleshoot-title">Troubleshooting Connection:</div>
+          <p><strong>1. College/Campus Wi-Fi (AP Isolation):</strong> Campus Wi-Fi blocks phone-to-PC connections. Turn on <em>Mobile Hotspot</em> on your phone or PC, or plug in a USB cable with <em>USB Tethering</em>.</p>
+          <p><strong>2. Motion Sensor Access:</strong> Mobile Chrome requires HTTPS or PWA. Tap "Install App" in your browser menu or use HTTPS.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETUP / PREFERENCES MODAL -->
+  <div class="modal-overlay" id="modal-setup" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>CONTROLLER SETUP</h3>
+        <button class="modal-close" id="btn-close-setup-modal">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Steering Sensitivity (Max Tilt)</label>
+          <select id="select-steer-range">
+            <option value="60">60° (Quick / ±30° tilt)</option>
+            <option value="90" selected>90° (Balanced / ±45° tilt - Recommended)</option>
+            <option value="120">120° (Wide / ±60° tilt)</option>
+            <option value="180">180° (Fine Sim / ±90° tilt)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Center Deadzone (<span id="txt-deadzone">2%</span>)</label>
+          <input type="range" id="range-deadzone" min="0" max="10" value="2">
+        </div>
+
+        <div class="form-group">
+          <label>Steering Linearity (<span id="txt-linearity">1.15</span>)</label>
+          <input type="range" id="range-linearity" min="100" max="200" value="115">
+        </div>
+
+        <div class="form-toggle-row">
+          <span>Invert Steering Axis</span>
+          <input type="checkbox" id="chk-invert-steer">
+        </div>
+
+        <div class="form-toggle-row">
+          <span>Haptic Vibration Feedback</span>
+          <input type="checkbox" id="chk-haptics" checked>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/phone.js"></script>
+</body>
+</html>

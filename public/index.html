@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gyropad PC - Companion & Simulator</title>
+<meta name="description" content="Turn your phone into a motion-controlled steering wheel and gamepad for sim racing games on PC.">
+<link rel="icon" href="/assets/logo.svg">
+<style>
+  :root {
+    --brand: #7C3AED;
+    --brand-lit: #A855F7;
+    --brand-pale: #C084FC;
+    --edge: #2A2140;
+    --bg: #0B0910;
+    --surface: #141218;
+    --surface-hi: #1D1B20;
+    --ink: #E6E0E9;
+    --ink-dim: #A9A2B0;
+    --stroke: #2E2A36;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: clamp(17.5px, 0.5vw + 14.2px, 22px)/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 0 20px 72px;
+    overflow-x: hidden;
+  }
+
+  #sky {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    display: block; z-index: 0;
+    pointer-events: none;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: min(1560px, 92vw); margin: 0 auto; }
+  .narrow { max-width: 680px; margin-left: auto; margin-right: auto; text-align: center; }
+
+  header { padding-top: 56px; margin-bottom: 40px; }
+
+  .mark {
+    width: 88px; height: 88px;
+    display: block; margin: 0 auto 28px;
+    border-radius: 22px;
+    box-shadow: 0 8px 32px rgba(124, 58, 237, 0.4);
+  }
+
+  h1 {
+    font-size: clamp(34px, 3.2vw + 24px, 60px);
+    line-height: 1.1; margin: 0 0 16px;
+    font-weight: 800; letter-spacing: -.02em;
+    background: linear-gradient(135deg, #fff 40%, var(--brand-pale));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  p.sub {
+    color: var(--ink-dim);
+    margin: 0;
+    font-size: clamp(19px, 0.6vw + 16px, 24px);
+    line-height: 1.45;
+  }
+
+  .play-now-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-lit));
+    color: #fff;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 19px;
+    padding: 16px 36px;
+    border-radius: 999px;
+    margin-top: 32px;
+    box-shadow: 0 8px 30px rgba(124, 58, 237, 0.5);
+    transition: all 0.25s ease;
+  }
+
+  .play-now-banner:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 12px 40px rgba(168, 85, 247, 0.7);
+  }
+
+  .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    align-items: start;
+    gap: clamp(48px, 4vw, 92px);
+    margin-top: 56px;
+    max-width: 100%;
+  }
+
+  h2 {
+    font-size: clamp(13.5px, 0.14vw + 12.3px, 15px);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--brand-pale);
+    margin: 0 0 18px;
+    font-weight: 600;
+  }
+
+  ol { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+  ol li { counter-increment: step; position: relative; padding: 0 0 24px 50px; }
+  ol li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 1px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--surface-hi); border: 1px solid var(--stroke);
+    color: var(--brand-pale); font-size: 16px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  ol li b { display: block; color: var(--ink); margin-bottom: 4px; }
+  ol li span { color: var(--ink-dim); font-size: 16.5px; }
+
+  .important { position: relative; margin-bottom: 28px; }
+  .important h2 { display: flex; align-items: center; gap: 12px; }
+
+  .beat {
+    position: relative; flex: 0 0 auto;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--brand-lit);
+  }
+  .beat::after {
+    content: ''; position: absolute; inset: -1px;
+    border-radius: 50%; border: 1.5px solid var(--brand-lit);
+    animation: ring 1500ms ease-out infinite;
+    pointer-events: none;
+  }
+  @keyframes ring {
+    0%   { transform: scale(1);   opacity: .85; }
+    100% { transform: scale(2.6); opacity: 0; }
+  }
+
+  .note {
+    background: var(--surface);
+    border: 1px solid var(--stroke);
+    border-radius: 16px; padding: 22px 24px;
+    animation: breathe 2500ms ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { border-color: var(--stroke); box-shadow: 0 0 26px -14px rgba(168, 85, 247, .5); }
+    50%      { border-color: rgba(168, 85, 247, .55); box-shadow: 0 0 42px -8px rgba(168, 85, 247, .8); }
+  }
+
+  .note p { margin: 0 0 14px; font-size: 16.5px; color: var(--ink-dim); }
+  .note p:last-child { margin-bottom: 0; }
+  .note strong { color: var(--ink); }
+  kbd {
+    background: var(--surface-hi); border: 1px solid var(--stroke);
+    border-radius: 6px; padding: 1px 7px; font-size: 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--ink);
+  }
+
+  .cta { display: flex; flex-direction: column; gap: 14px; }
+  .btn {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; padding: 16px 28px; border-radius: 14px;
+    text-decoration: none; font-weight: 700; font-size: 17px;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: var(--brand); color: #fff;
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+  }
+  .btn-primary:hover {
+    background: var(--brand-lit); transform: translateY(-2px);
+  }
+  .btn-secondary {
+    background: var(--surface-hi); border: 1px solid var(--stroke);
+    color: var(--ink);
+  }
+  .btn-secondary:hover {
+    background: #25222E;
+  }
+
+  .meta { color: var(--ink-dim); font-size: 13.5px; text-align: center; margin: 4px 0 0; }
+
+  footer {
+    margin-top: 72px; text-align: center;
+    color: var(--ink-dim); font-size: 15px;
+    border-top: 1px solid var(--stroke); padding-top: 28px;
+  }
+  footer a { color: var(--brand-pale); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 820px) {
+    .cols { grid-template-columns: 1fr; gap: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="sky" aria-hidden="true"></canvas>
+
+<div class="wrap">
+  <header class="narrow">
+    <img src="/assets/logo.svg" alt="Gyropad Logo" class="mark">
+    <h1>Gyropad PC</h1>
+    <p class="sub">The companion app your PC needs, so the phone in your hands can drive the game on your screen.</p>
+    
+    <div>
+      <a href="/pc" class="play-now-banner">
+        <span>Launch Web Companion &amp; Simulator</span>
+        <span style="font-family: monospace;">&rarr;</span>
+      </a>
+    </div>
+  </header>
+
+  <div class="cols">
+    <div class="side">
+      <section class="important">
+        <h2><span class="beat" aria-hidden="true"></span> Important note</h2>
+        <div class="note">
+          <p class="lead">Windows will probably show a blue
+             <strong>&ldquo;Windows protected your PC&rdquo;</strong> box the first
+             time you run the installer.</p>
+          <p>That is <strong>SmartScreen</strong>, and it appears for every new
+             program that has not yet been downloaded by enough people. It is not
+             a virus warning, and nothing is wrong with the file.</p>
+          <p>Click <kbd>More info</kbd>, then <kbd>Run anyway</kbd>.</p>
+          <p>The download below downloads straight from the project's own GitHub
+             releases &mdash; never from a mirror or an advert.</p>
+        </div>
+      </section>
+
+      <div class="cta">
+        <a class="btn btn-primary"
+           href="/downloads/gyropad-pc-companion.zip" download>
+           Download PC Companion (.zip)
+        </a>
+        <p class="meta">Free &middot; Windows 10 and 11 &middot; about 16 MB</p>
+
+        <a class="btn btn-secondary" href="/phone">
+          <span>Open Mobile Controller (Web)</span>
+        </a>
+
+        <a class="btn btn-secondary"
+           href="/pc"
+           target="_blank">
+          <span>Open 3D Racing Simulator (PC)</span>
+        </a>
+      </div>
+    </div>
+
+    <section class="steps">
+      <h2>Setting it up</h2>
+      <ol>
+        <li>
+          <b>Run the Companion or Open in Browser</b>
+          <span>No administrator password needed. Or launch the built-in 3D simulator directly in your browser.</span>
+        </li>
+        <li>
+          <b>Put both devices on the same Wi-Fi</b>
+          <span>Or plug the phone in and turn on USB tethering &mdash; Gyropad works over the cable too.</span>
+        </li>
+        <li>
+          <b>Open Gyropad on your phone and tap Connect</b>
+          <span>Hold your phone in landscape like a steering wheel. Tilt to steer and tap pedals to accelerate and brake!</span>
+        </li>
+      </ol>
+    </section>
+  </div>
+
+  <footer>
+    <p>
+      Created by Angry-panda-Abhi &middot; Precision motion sim racing on PC.<br>
+      <a href="https://github.com/Angry-panda-Abhi/Gyropad" target="_blank">GitHub Repository</a> &middot; 
+      <a href="/pc">Launch 3D Racing Simulator</a>
+    </p>
+  </footer>
+</div>
+
+<script>
+  // Rolls-Royce Starlight Sky Headliner
+  (function () {
+    var cv = document.getElementById('sky');
+    if (!cv || !cv.getContext) return;
+    var ctx = cv.getContext('2d');
+    var stars = [], vw = 0, vh = 0;
+    var tx = 0, ty = 0, px = 0, py = 0, inf = 0, infTo = 0;
+    var TINTS = ['255,248,236', '255,243,224', '255,252,248', '214,226,255'];
+
+    function resize() {
+      vw = window.innerWidth;
+      vh = window.innerHeight;
+      cv.width = vw;
+      cv.height = vh;
+      stars = [];
+      var n = Math.round(Math.min(320, Math.max(80, (vw * vh) / 4500)));
+      for (var i = 0; i < n; i++) {
+        stars.push({
+          x: Math.random() * vw,
+          y: Math.random() * vh,
+          size: 0.8 + Math.random() * 1.5,
+          tint: TINTS[Math.floor(Math.random() * TINTS.length)],
+          baseAlpha: 0.15 + Math.random() * 0.5,
+          speed: 0.8 + Math.random() * 2.0
+        });
+      }
+    }
+
+    window.addEventListener('mousemove', function (e) {
+      tx = e.clientX; ty = e.clientY; infTo = 1;
+    });
+    window.addEventListener('mouseleave', function () { infTo = 0; });
+    window.addEventListener('resize', resize);
+    resize();
+
+    var t = 0;
+    function loop() {
+      t += 0.02;
+      ctx.clearRect(0, 0, vw, vh);
+      px += (tx - px) * 0.1;
+      py += (ty - py) * 0.1;
+      inf += (infTo - inf) * 0.05;
+
+      for (var i = 0; i < stars.length; i++) {
+        var s = stars[i];
+        var alpha = s.baseAlpha + Math.sin(t * s.speed + s.x) * 0.25;
+        if (inf > 0.01) {
+          var dx = px - s.x, dy = py - s.y;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 220) {
+            alpha += (1 - dist / 220) * 0.7 * inf;
+          }
+        }
+        ctx.fillStyle = 'rgba(' + s.tint + ',' + Math.max(0.1, Math.min(1, alpha)) + ')';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  })();
+</script>
+</body>
+</html>
